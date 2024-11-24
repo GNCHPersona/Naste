@@ -3,9 +3,9 @@ from typing import Any, Dict, List, Optional
 
 from config import DbConfig
 
-
 import logging
 import colorlog
+
 # Настройка цветного логгера
 handler = colorlog.StreamHandler()
 handler.setFormatter(colorlog.ColoredFormatter(

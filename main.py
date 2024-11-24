@@ -56,7 +56,7 @@ async def about():
         else:
             flash("Пользователь не найден")
             print("User not found")  # Debug output
-
+        await db.disconnect()
     return render_template("about.html")
 
 
