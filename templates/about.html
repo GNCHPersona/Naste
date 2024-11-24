@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Войти
+{% endblock %}
+
+{% block body %}
+<style>
+    .registration-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh; /* Высота окна просмотра */
+        margin: 0;
+        background-color: #dbe5f3; /* Цвет фона страницы */
+    }
+    .registration-form {
+        width: 300px; /* Ширина формы */
+        padding: 20px; /* Отступы внутри формы */
+        background-color: white; /* Цвет фона формы */
+        border-radius: 5px; /* Скругление углов */
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Тень */
+    }
+</style>
+
+<div class="registration-container">
+    <form class="registration-form" method="POST" action="{{ url_for('about') }}">
+        <h1 class="h3 mb-3 fw-normal">Пожалуйста, войдите в систему</h1>
+
+        <div class="form-floating">
+            <input type="text" class="form-control" id="floatingInput" name="username" required placeholder="Имя пользователя">
+            <label for="floatingInput">Имя пользователя</label>
+        </div>
+
+        <div class="form-floating">
+            <input type="password" class="form-control" id="floatingPassword" name="password" required placeholder="Пароль">
+            <label for="floatingPassword">Пароль</label>
+        </div>
+
+        <button class="btn w-100 py-2" type="submit" style="background-color: #e1e3e7; color: black;">Вход</button>
+    </form>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+</div>
+
+{% endblock %}
