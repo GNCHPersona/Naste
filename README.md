@@ -8,10 +8,13 @@ main.py
 misc.py
 config.py
 
+
+
 второстепенные файлы:
 temp.py - разобранный исходный код
 test_bd - код для тестирования, изменения / добавления в базу данных.
 .env - !!!ПЕРЕПИШИ СВОИ ДАННЫК ДЛЯ БД
+
 
 
 coonfig.py ->
@@ -26,6 +29,9 @@ coonfig.py ->
   Выглядит как:
     "postgresql://myuser:mypassword@localhost/mydatabase"
                   ^-user ^-password ^-host    ^-db_name
+
+
+
 
 postgres.py ->
 1) Добавил логгирование для красоты
@@ -43,7 +49,14 @@ postgres.py ->
 
   Внизу файла есть пример кода async def main()
 
+
+
+
 main.py -> Переписанный код flask - готово только проверка на пароли.
+
+
+
+
 
 misk.py -> "Разное"
   class: PassAction -> Работа с хэшированием и проверки пароля
