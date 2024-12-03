@@ -1,7 +1,7 @@
-import asyncpg
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
 
-from config import DbConfig
+import asyncpg
+from typing import Any, List, Optional
 
 import logging
 import colorlog
@@ -22,39 +22,34 @@ logger = colorlog.getLogger("DatabaseLogger")
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)  # Уровень логирования
 
-class DbLink:
+@dataclass
+class DatabaseConnect:
 
-    def __init__(self, config: DbConfig):
-
-        self.config = config
+    dsn: str
 
     async def __call__(self):
-        return f"postgresql://{self.config.user}:{self.config.password}@{self.config.host}/{self.config.database}"
-
-    def __await__(self):
-        return self().__await__()
-
-class Database:
-
-    async def connect(self, dsn: str):
         """
-        Инициализация объекта для работы с базой данных.
         Устанавливает соединение с базой данных через пул подключений.
-
-        :param dsn: Data Source Name (строка подключения)
         """
-
-        self.dsn = dsn
-        self.pool: Optional[asyncpg.Pool] = None
 
         try:
             self.pool = await asyncpg.create_pool(dsn=self.dsn, min_size=1, max_size=10)
             logger.info("Подключение к базе данных успешно установлено.")
+            return self.pool
         except Exception as e:
             logger.error("Ошибка при подключении к базе данных:\n%s", e)
             raise
 
-    async def disconnect(self):
+    def __await__(self):
+        return self().__await__()
+
+
+@dataclass
+class DatabaseDisconnect:
+
+    pool: Optional[asyncpg.Pool]
+
+    async def __call__(self):
         """
         Закрывает пул подключений.
         """
@@ -66,9 +61,19 @@ class Database:
         except Exception as e:
             logger.error("Ошибка при закрытии соединения с базой данных:\n%s", e)
 
+    def __await__(self):
+        return self().__await__()
 
 
-    async def execute(self, query: str, *args: Any) -> str:
+class Database:
+
+    def __init__(self, pool: Optional[asyncpg.Pool]):
+        self.pool = pool
+
+    async def execute(self, query: str, *args: list) -> str:
+        print("query:", query)
+        print("args:", args)
+
         """
         Выполняет запрос без возврата результата (например, INSERT, UPDATE, DELETE).
 
@@ -83,9 +88,10 @@ class Database:
                 return result
         except Exception as e:
             logger.error("Ошибка при выполнении запроса без возврата результата:\n%s", e)
-            raise
+            return f"Ошибка при выполнении запроса без возврата результата:\n{e}"
 
-    async def fetch(self, query: str, *args: Any) -> List[asyncpg.Record]:
+    async def fetch(self, query: str, *args: list | None) -> List[asyncpg.Record]:
+
         """
         Выполняет SELECT-запрос и возвращает список строк.
 
@@ -95,14 +101,17 @@ class Database:
         """
         try:
             async with self.pool.acquire() as connection:
-                rows = await connection.fetch(query, *args)
+                if args:
+                    rows = await connection.fetch(query, *args)
+                else:
+                    rows = await connection.fetch(query)
                 logger.info(f"SELECT-запрос успешно выполнен.\nrows: {rows}")
                 return rows
         except Exception as e:
             logger.error("Ошибка при выполнении SELECT-запроса:\n%s", e)
             raise
 
-    async def fetchrow(self, query: str, *args: Any) -> Optional[asyncpg.Record]:
+    async def fetchrow(self, query: str, *args: list) -> Optional[asyncpg.Record]:
         """
         Выполняет SELECT-запрос и возвращает одну строку.
 
@@ -112,14 +121,17 @@ class Database:
         """
         try:
             async with self.pool.acquire() as connection:
-                row = await connection.fetchrow(query, *args)
+                if args:
+                    row = await connection.fetchrow(query, *args)
+                else:
+                    row = await connection.fetchrow(query)
                 logger.info(f"SELECT-запрос успешно выполнен.\nrow: {row}")
                 return row
         except Exception as e:
             logger.error("Ошибка при выполнении SELECT-запроса:\n%s", e)
             raise
 
-    async def fetchval(self, query: str, *args: Any) -> Any:
+    async def fetchval(self, query: str, *args: list) -> Any:
         """
         Выполняет SELECT-запрос и возвращает одно значение.
 
@@ -129,45 +141,11 @@ class Database:
         """
         try:
             async with self.pool.acquire() as connection:
-                value = await connection.fetchval(query, *args)
+                if args:
+                    value = await connection.fetchval(query, args)
+                else:
+                    value = await connection.fetchval(query)
                 return value
         except Exception as e:
             logger.error("Ошибка при выполнении SELECT-запроса:\n%s", e)
             raise
-
-
-# Пример использования
-async def main():
-    db = Database()
-
-    # Подключение к базе
-    await db.connect(dsn="postgresql://myuser:mypassword@localhost/mydatabase")
-
-    # Пример: создание таблицы
-    await db.execute("""
-        CREATE TABLE IF NOT EXISTS users12 (
-            id SERIAL PRIMARY KEY,
-            name TEXT NOT NULL,
-            age INT NOT NULL
-        )
-    """)
-
-    # Пример: добавление данных
-    await db.execute("INSERT INTO users12 (name, age) VALUES ($1, $2)", "Alice", 25)
-
-    # Пример: получение всех пользователей
-    users = await db.fetch("SELECT * FROM users12")
-    print(users)
-
-    # Пример: получение одного пользователя
-    user = await db.fetchrow("SELECT * FROM users12 WHERE id = $1", 1)
-    print(user)
-
-    # Закрытие соединения
-    await db.disconnect()
-
-
-# # Для выполнения
-# import asyncio
-#
-# asyncio.run(main())

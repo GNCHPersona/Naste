@@ -77,10 +77,6 @@ async def get_user_by_username(username):
 
 
 
-@app.route('/MAIN')
-@login_required
-async def MAIN():
-    return render_template("MAIN.html")
 
 @app.route('/logout')
 @login_required

@@ -42,7 +42,33 @@ class DbConfig:
             host=host, password=password, user=user, database=database, port=port
         )
 
+@dataclass
+class ServerConfig:
+    """
+    Server configuration class.
+    This class holds the settings for the database, such as host, port.
 
+    Attributes
+    ----------
+    host : str
+        The host where the server is located.
+    port : int
+        The port where the server is listening.
+    """
+
+    host: str
+    port: int
+
+    @staticmethod
+    def from_env(env: Env):
+        """
+        Creates the ServerConfig object from environment variables.
+        """
+        host = env.str("SERVER_HOST")
+        port = env.int("SERVER_PORT")
+        return ServerConfig(
+            host=host, port=port
+        )
 
 @dataclass
 class Config:
@@ -58,6 +84,7 @@ class Config:
     """
 
     db: DbConfig
+    server: ServerConfig
 
 
 def load_config(path: str = None) -> Config:
@@ -74,5 +101,5 @@ def load_config(path: str = None) -> Config:
     env.read_env(path)
 
     return Config(
-        db=DbConfig.from_env(env),
+        db=DbConfig.from_env(env), server=ServerConfig.from_env(env)
     )
