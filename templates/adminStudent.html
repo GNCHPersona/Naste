@@ -5,5 +5,46 @@
 {% endblock %}
 
 {% block body %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Учителя</title>
+</head>
+<body>
+    <h1>Список школьников</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>USER_ID</th>
+                <th>Имя</th>
+                <th>Email</th>
+                <th>Телефон</th>
+                <th>GRADE_ID</th>
+                <th>PARENT_ID</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ student.student_id }}</td>
+                <td>{{ student.user_id }}</td>
+                <td>{{ student.username }}</td>
+                <td>{{ student.email }}</td>
+                <td>{{ student.phone }}</td>
+                <td>{{ student.grade_id }}</td>
+                <td>{{ student.parent_id }}</td>
+                <td>
+                    <a href="{{ url_for('adminStudent', student_id=student.student_id, user_id=student.user_id, method='edit') }}">Редактировать</a>
+                    <a href="{{ url_for('adminStudent', student_id=student.student_id, user_id=student.user_id, method='delete') }}">Удалить</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
 
 {% endblock %}

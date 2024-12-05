@@ -48,11 +48,15 @@ async def execute(raw_query: QueryModel):
 
 @app.post("/fetch")
 async def request(raw_query: QueryModel):
+    args = None
     query = raw_query.query
-    args = raw_query.args
-    if args:
+    try:
         args = list(raw_query.args.values())  # Получаем параметры запроса
-    return await Database(pool=app.state.pool).fetch(query, *args)
+    except:
+        pass
+    if args:
+        return await Database(pool=app.state.pool).fetch(query, *args)
+    return await Database(pool=app.state.pool).fetch(query, None)
 
 
 async def main():

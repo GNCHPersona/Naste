@@ -91,7 +91,7 @@ class Database:
             return f"Ошибка при выполнении запроса без возврата результата:\n{e}"
 
     async def fetch(self, query: str, *args: list | None) -> List[asyncpg.Record]:
-
+        print("args=", args)
         """
         Выполняет SELECT-запрос и возвращает список строк.
 
@@ -101,10 +101,11 @@ class Database:
         """
         try:
             async with self.pool.acquire() as connection:
-                if args:
-                    rows = await connection.fetch(query, *args)
-                else:
+                if not args or args == (None,):
                     rows = await connection.fetch(query)
+                else:
+                    rows = await connection.fetch(query, *args)
+
                 logger.info(f"SELECT-запрос успешно выполнен.\nrows: {rows}")
                 return rows
         except Exception as e:
@@ -121,10 +122,11 @@ class Database:
         """
         try:
             async with self.pool.acquire() as connection:
-                if args:
-                    row = await connection.fetchrow(query, *args)
-                else:
+                if not args or args == (None,):
                     row = await connection.fetchrow(query)
+                else:
+                    row = await connection.fetchrow(query, *args)
+
                 logger.info(f"SELECT-запрос успешно выполнен.\nrow: {row}")
                 return row
         except Exception as e:
@@ -141,10 +143,10 @@ class Database:
         """
         try:
             async with self.pool.acquire() as connection:
-                if args:
-                    value = await connection.fetchval(query, args)
-                else:
+                if not args or args == (None,):
                     value = await connection.fetchval(query)
+                else:
+                    value = await connection.fetchval(query, *args)
                 return value
         except Exception as e:
             logger.error("Ошибка при выполнении SELECT-запроса:\n%s", e)

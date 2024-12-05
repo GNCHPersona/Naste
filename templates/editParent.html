@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактировать родителя</title>
+</head>
+<body>
+    <h1>Редактировать родителя</h1>
+    <form method="POST" action="/adminParent/edit">
+        <label>Имя: <input type="text" name="username" value="{{ parent.username }}"></label><br>
+        <label>Email: <input type="email" name="email" value="{{ parent.email }}"></label><br>
+        <label>Телефон: <input type="text" name="phone" value="{{ parent.phone }}"></label><br>
+        <input type="hidden" name="id" value="{{ parent.parent_id }}">
+        <button type="submit">Сохранить</button>
+    </form>
+</body>
+</html>

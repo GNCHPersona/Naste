@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактировать учителя</title>
+</head>
+<body>
+    <h1>Редактировать учителя</h1>
+    <form method="POST" action="/adminTeacher/edit">
+        <label>Имя: <input type="text" name="username" value="{{ teacher.username }}"></label><br>
+        <label>Email: <input type="email" name="email" value="{{ teacher.email }}"></label><br>
+        <label>Предмет: <input type="text" name="subject_id" value="{{ teacher.subject_id }}"></label><br>
+        <label>Телефон: <input type="text" name="phone" value="{{ teacher.phone }}"></label><br>
+        <input type="hidden" name="id" value="{{ teacher.id }}">
+        <button type="submit">Сохранить</button>
+    </form>
+</body>
+</html>

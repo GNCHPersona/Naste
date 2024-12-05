@@ -1,8 +1,10 @@
+from crypt import methods
+
 from flask import Flask, render_template, url_for, request, redirect, flash, session
 from flask_login import LoginManager, login_user, login_required
 import logging
 import colorlog
-from misc import send_request
+from misc import send_request, Json
 from config import load_config
 
 from misc import PassAction, User, role_required, ProveData
@@ -157,7 +159,6 @@ async def addParent():
         }
 
         response = await send_request(server=app.config['Server'], type="execute", payload=payload)
-        print(response)
         flash("Parent added successfully!")
     return render_template("addParent.html")
 
@@ -196,7 +197,6 @@ async def addStudent():
         }
 
         response = await send_request(server=app.config['Server'], type="execute", payload=payload)
-        print(response)
         flash("Student added successfully!")
     return render_template("addStudent.html")
 
@@ -216,20 +216,259 @@ def diary():
     return render_template("diary.html")
 
 @app.route('/adminStudent')
-def adminStudent():
-    return render_template("adminStudent.html")
+@role_required("admin")
+@login_required
+async def adminStudent():
+    payload = {
+        "query": "SELECT * FROM student;",
+        "args": None
+    }
 
-@app.route('/adminTeacher')
-def adminTeacher():
-    return render_template("adminTeacher.html")
+    students = await send_request(server=app.config['Server'], type="fetch", payload=payload)
+    id = request.args.get('student_id')
+    method = request.args.get('method')
+    user_id = request.args.get('user_id')
+
+    if method == "delete":
+        payload = {
+            "query": """
+                    WITH deleted_student AS (
+                        DELETE FROM student WHERE student_id = $1 RETURNING user_id
+                    )
+                    DELETE FROM users WHERE id IN (SELECT user_id FROM deleted_student);
+                """,
+            "args": {"id": int(id)}
+        }
+        execute = await send_request(server=app.config["Server"], type="execute", payload=payload)
+
+        try:
+            await Json(file_path="trash/deleted_users.json",
+                       data=[student for student in students if student["student_id"] == int(id)][0]).append_json_file()
+        except Exception as e:
+            print(e)
+        flash("Student deleted successfully!")
+
+        return redirect(url_for('adminStudent'))
+
+    if method == "edit":
+
+        return render_template("editStudent.html",
+                               student=[student for student in students if student["student_id"] == int(id)][0])
+
+    return render_template("adminStudent.html", students=students)
+
+
+@app.route('/adminStudent/edit', methods=['GET', 'POST'])
+@role_required("admin")
+@login_required
+async def edit_student():
+    username = request.form.get('username')
+    email = request.form.get('email')
+    grade_id = request.form.get('grade_id')
+    parent_id = request.form.get('parent_id')
+    phone = request.form.get('phone')
+    id = request.form.get('id')
+
+    if not all([username, email, grade_id, parent_id, phone]):
+        flash("Все поля должны быть заполнены.", "error")
+        return redirect(url_for('adminStudent'))  # Возвращаемся к странице с учителями
+
+    payload = {
+        "query": """
+            WITH updated_user AS (
+                UPDATE users
+                SET username = $1
+                WHERE id = (
+                    SELECT user_id FROM student WHERE student_id = $6
+                )
+                RETURNING id
+            )
+            UPDATE student
+            SET username = $1, email = $2, grade_id = $3, parent_id = $4, phone = $5
+            WHERE student_id = $6;
+            """,
+        "args": {
+            "username": username,  # Имя
+            "email": email,  # Email
+            "grade_id": int(grade_id),  # Предмет
+            "parent_id": int(parent_id),  # Предмет
+            "phone": phone,  # Телефон
+            "id": int(id)  # ID учителя
+        }
+    }
+
+    # Отправляем запрос на сервер
+    execute = await send_request(server=app.config["Server"], type="execute", payload=payload)
+    return redirect(url_for('adminStudent'))
+
+
+@app.route('/adminParent')
+@role_required("admin")
+@login_required
+async def adminParent():
+    payload = {
+        "query": "SELECT * FROM parents;",
+        "args": None
+    }
+
+    parents = await send_request(server=app.config['Server'], type="fetch", payload=payload)
+    id = request.args.get('parent_id')
+    method = request.args.get('method')
+    user_id = request.args.get('user_id')
+
+    if method == "delete":
+        payload = {
+            "query": """
+                        WITH deleted_parent AS (
+                            DELETE FROM parents WHERE parent_id = $1 RETURNING user_id
+                        )
+                        DELETE FROM users WHERE id IN (SELECT user_id FROM deleted_parent);
+                    """,
+            "args": {"id": int(id)}
+        }
+        execute = await send_request(server=app.config["Server"], type="execute", payload=payload)
+
+        try:
+            await Json(file_path="trash/deleted_users.json",
+                       data=[parent for parent in parents if parent["parent_id"] == int(id)][0]).append_json_file()
+        except Exception as e:
+            print(e)
+        flash("Parent deleted successfully!")
+
+        return redirect(url_for('adminParent'))
+
+    if method == "edit":
+        return render_template("editParent.html",
+                               parent=[parent for parent in parents if parent["parent_id"] == int(id)][0])
+
+    return render_template("adminParent.html", parents=parents)
+
+
+@app.route('/adminParent/edit', methods=['GET', 'POST'])
+@role_required("admin")
+@login_required
+async def edit_parent():
+    username = request.form.get('username')
+    email = request.form.get('email')
+    phone = request.form.get('phone')
+    id = request.form.get('id')
+
+    if not all([username, email, phone]):
+        flash("Все поля должны быть заполнены.", "error")
+        return redirect(url_for('adminParent'))  # Возвращаемся к странице с учителями
+
+    payload = {
+        "query": """
+                WITH updated_user AS (
+                    UPDATE users
+                    SET username = $1
+                    WHERE id = (
+                        SELECT user_id FROM parents WHERE parent_id = $4
+                    )
+                    RETURNING id
+                )
+                UPDATE parents
+                SET username = $1, email = $2, phone = $3
+                WHERE parent_id = $4;
+                """,
+        "args": {
+            "username": username,  # Имя
+            "email": email,  # Email
+            "phone": phone,  # Телефон
+            "id": int(id)  # ID учителя
+        }
+    }
+
+    # Отправляем запрос на сервер
+    execute = await send_request(server=app.config["Server"], type="execute", payload=payload)
+    return redirect(url_for('adminParent'))
+
+
+@app.route('/adminTeacher', methods=['GET', 'POST'])
+@role_required("admin")
+@login_required
+async def adminTeacher():
+    payload = {
+        "query": "SELECT * FROM teacher;",
+        "args": None
+    }
+
+    teachers = await send_request(server=app.config['Server'], type="fetch", payload=payload)
+
+
+    id = request.args.get('teacher_id')
+    method = request.args.get('method')
+    user_id = request.args.get('user_id')
+
+    if method == "delete":
+        payload = {
+            "query": """
+                WITH deleted_teacher AS (
+                    DELETE FROM teacher WHERE id = $1 RETURNING user_id
+                )
+                DELETE FROM users WHERE id IN (SELECT user_id FROM deleted_teacher);
+            """,
+            "args": {"id": int(id)}
+        }
+        execute = await send_request(server=app.config["Server"], type="execute", payload=payload)
+
+        try:
+            await Json(file_path="trash/deleted_users.json", data=[teacher for teacher in teachers if teacher["id"] == int(id)][0]).append_json_file()
+        except Exception as e:
+            print(e)
+        flash("Teacher deleted successfully!")
+
+        return redirect(url_for('adminTeacher'))
+
+    if method == "edit":
+        return render_template("editTeacher.html", teacher=[teacher for teacher in teachers if teacher["id"] == int(id)][0])
+
+    return render_template("adminTeacher.html", teachers=teachers)
+
+@app.route('/adminTeacher/edit', methods=['GET', 'POST'])
+@role_required("admin")
+@login_required
+async def edit_teacher():
+    username = request.form.get('username')
+    email = request.form.get('email')
+    subject_id = request.form.get('subject_id')
+    phone = request.form.get('phone')
+    id = request.form.get('id')
+
+    if not all([username, email, subject_id, phone]):
+        flash("Все поля должны быть заполнены.", "error")
+        return redirect(url_for('adminTeacher'))  # Возвращаемся к странице с учителями
+
+    payload = {
+        "query": """
+        WITH updated_user AS (
+            UPDATE users
+            SET username = $1
+            WHERE id = (
+                SELECT user_id FROM teacher WHERE id = $5
+            )
+            RETURNING id
+        )
+        UPDATE teacher
+        SET username = $1, email = $2, subject_id = $3, phone = $4
+        WHERE id = $5;
+        """,
+        "args": {
+            "username": username,        # Имя
+            "email": email,          # Email
+            "subject": int(subject_id),      # Предмет
+            "phone": phone,          # Телефон
+            "id": int(id)         # ID учителя
+        }
+    }
+
+    # Отправляем запрос на сервер
+    execute = await send_request(server=app.config["Server"], type="execute", payload=payload)
+    return redirect(url_for('adminTeacher'))
 
 @app.route('/adminDiary')
 def adminDiary():
     return render_template("adminDiary.html")
-
-@app.route('/adminParent')
-def adminParent():
-    return render_template("adminParent.html")
 
 @app.route('/MAIN')
 @login_required

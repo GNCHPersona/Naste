@@ -1,5 +1,8 @@
 import asyncio
 
+import json
+import aiofiles
+
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, current_user
 from flask import abort
@@ -66,6 +69,69 @@ async def send_request(server: ServerConfig, type: str,  payload: dict):
                 return await response.json()
             else:
                 print(f"Ошибка {response.status}: {await response.text()}")
+
+class Json:
+    """
+    Асинхронно создает, редактирует, удаляет JSON-файл с переданными данными.
+
+    :param file_path: Путь к создаваемому файлу.
+    :param data: Данные для записи в JSON-файл.
+    """
+
+    def __init__(self, file_path, data):
+
+        self.file_path = file_path
+        self.data = data
+
+    async def create_json_file(self):
+        try:
+            async with aiofiles.open(self.file_path, mode='w') as file:
+                json_data = json.dumps(self.data, indent=4)  # Преобразуем данные в строку JSON
+                await file.write(json_data)  # Асинхронная запись в файл
+            print(f"Файл успешно создан: {self.file_path}")
+        except Exception as e:
+            print(f"Ошибка при создании файла: {e}")
+
+    async def append_json_file(self):
+        try:
+            async with aiofiles.open(self.file_path, mode='r') as file:
+                json_data = await file.read()  # Асинхронное чтение содержимого файла
+                data = json.loads(json_data)
+                data.append(self.data)
+            async with aiofiles.open(self.file_path, mode='w') as file:
+                json_data = json.dumps(data, indent=4)  # Преобразуем данные в строку JSON
+                await file.write(json_data)  # Асинхронная запись в файл
+            print(f"Файл успешно изменен: {self.file_path}")
+        except Exception as e:
+            print(f"Ошибка при изменении файла: {e}")
+
+    async def read_json_file(self):
+        try:
+            async with aiofiles.open(self.file_path, mode='r') as file:
+                json_data = await file.read()  # Асинхронное чтение содержимого файла
+                data = json.loads(json_data)  # Преобразование строки JSON в Python-объект
+            print("Данные успешно считаны!")
+            return data
+        except Exception as e:
+            print(f"Ошибка при чтении файла: {e}")
+            return None
+
+
+
+
+
+    #
+    # # Пример использования
+    # import asyncio
+    #
+    # data_to_save = {
+    #     "name": "John Doe",
+    #     "age": 30,
+    #     "hobbies": ["reading", "cycling", "gaming"]
+    # }
+    #
+    # # Асинхронный запуск
+    # asyncio.run(create_json_file("output.json", data_to_save))
 
 #
 # async def main():
