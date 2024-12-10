@@ -1,4 +1,5 @@
 from crypt import methods
+from types import MethodType
 
 from flask import Flask, render_template, url_for, request, redirect, flash, session
 from flask_login import LoginManager, login_user, login_required
@@ -8,6 +9,8 @@ from misc import send_request, Json
 from config import load_config
 
 from misc import PassAction, User, role_required, ProveData
+from temp import student
+
 # from database.postgres import Database, DbLink
 
 # Настройка цветного логгера
@@ -211,14 +214,143 @@ def adminMain():
 def Student():
     return render_template("Student.html")
 
+
+@role_required("admin", "teacher", "student")
+@login_required
 @app.route('/diary')
-def diary():
-    return render_template("diary.html")
+async def diary():
+
+    user_id = session['user_data']['id']  # Получаем ID пользователя из сессии
+
+    if not user_id:
+        flash("Are you the pirat?")
+        redirect(url_for("about"))
+
+    # payload = {
+    #     "query": """
+    #     SELECT
+    #         t.day_of_week,
+    #         t.start_time,
+    #         t.end_time,
+    #         s.subject_name,
+    #         c.room_number,
+    #         te.username AS teacher_name
+    #     FROM
+    #         Timetable t
+    #     JOIN
+    #         Subjects s ON t.subject_id = s.subject_id
+    #     JOIN
+    #         Classrooms c ON t.classroom_id = c.classroom_id
+    #     JOIN
+    #         Teachers te ON t.teacher_id = te.teacher_id
+    #     JOIN
+    #         Classes cl ON t.class_id = cl.class_id
+    #     WHERE
+    #         cl.class_id IN (
+    #             SELECT class_id FROM Students WHERE user_id = $1
+    #         )
+    #     ORDER BY
+    #         CASE
+    #             WHEN t.day_of_week = 'Понедельник' THEN 1
+    #             WHEN t.day_of_week = 'Вторник' THEN 2
+    #             WHEN t.day_of_week = 'Среда' THEN 3
+    #             WHEN t.day_of_week = 'Четверг' THEN 4
+    #             WHEN t.day_of_week = 'Пятница' THEN 5
+    #             WHEN t.day_of_week = 'Суббота' THEN 6
+    #             WHEN t.day_of_week = 'Воскресенье' THEN 7
+    #             ELSE 8  -- На случай, если день недели не соответствует ожидаемым значениям
+    #         END,
+    #         t.start_time
+    #     """,
+    #     "args": {"user_id": user_id}
+    # }
+    #
+    # fetch = await send_request(server=app.config["server"], type="fetch", payload=payload)
+
+    # schedule = fetch
+
+    ###                                                                                   ^
+    ### FETCH TEST, DELETE SCHEDULE BELOW | WHEN USING THE DATABASE, UNZIP THE ABOVE CODE |
+    ###                                  \/
+
+    schedule = [
+        {"day_of_week": "Понедельник", "start_time": "8:30", "end_time": "09:55", "subject_name": "Технологии резрешения конфликтов", "room_number": "209", "teacher_name": "Гулевич Е.В."},
+        {"day_of_week": "Понедельник", "start_time": "10:05", "end_time": "11:30", "subject_name": "Технологии резрешения конфликтов", "room_number": "209", "teacher_name": "Гулевич Е.В."},
+        {"day_of_week": "Понедельник", "start_time": "11:40", "end_time": "13:05", "subject_name": "Практический курс перевода (2-го иностр. яз.)", "room_number": "214", "teacher_name": "Адамович С.В."},
+        {"day_of_week": "Понедельник", "start_time": "13:30", "end_time": "14:55", "subject_name": "Практикум по культуре реч. общения (2 ин. яз.)", "room_number": "205", "teacher_name": "Адамович С.В."},
+        {"day_of_week": "Понедельник", "start_time": "15:05", "end_time": "16:30", "subject_name": "Перевод специальных текстов", "room_number": "303", "teacher_name": "Нуретдинова А.Д."}
+    ]
+
+    required_keys = ["day_of_week", "start_time", "end_time", "subject_name", "room_number", "teacher_name"]
+
+    if not all(all(key in item and item[key] for key in required_keys) for item in schedule):
+        flash("Внутрення ошибка данных")
+        redirect(url_for("MAIN"))
+        raise Exception(f'Неполноценные данные required_keys = ["day_of_week", "start_time", "end_time", "subject_name", "room_number", "teacher_name"] schedule = {schedule}')
+
+    return render_template("diary.html", schedule=schedule)
+
+@app.route('/TeacherMain')
+@role_required("teacher", "admin")
+@login_required
+async def TeacherMain():
+    return render_template("TeacherMain.html")
+
+@app.route('/journal', methods=['GET', 'POST'])
+@role_required("teacher", "admin")
+@login_required
+async def journal():
+
+    if request.method == 'POST':
+        grade = request.form.get('grades')
+        remark = request.form.get('remarks')
+        student_id = request.form.get('student_ids')
+        student_username = request.form.get('student_username')
+
+        if grade:
+            payload = {
+                "query": "INSERT INTO grades (student_id, subject_id, grade) VALUES ($1, $2, $3);",
+                "args": {
+                    "student_id": student_id,
+                    "subject_id": 0,  # Изменить на релизе!!! > добавить id предмета по которому ставиться оценка
+                    "grade": grade
+                }
+            }
+            fetch = await send_request(server=app.config['Server'], type="execute", payload=payload)
+            flash(f"Оценка: {grade} успешно сохранена для: {student_username}")
+
+        if remark:
+
+            remark_data={
+                "user_id": student_id,
+                "username": student_username,
+                "remark": remark
+            }
+
+            try:
+                await Json(file_path="json_files/remarks.json",
+                           data=remark_data).append_json_file()
+            except Exception as e:
+                print(e)
+            flash(f"Замечание сохранено для: {student_username}")
+        redirect(url_for("journal"))
+
+
+    payload = {
+        "query": "SELECT * FROM users WHERE role=$1;",
+        "args": {"role": "student"}
+    }
+
+    fetch = await send_request(server=app.config['Server'], type="fetch", payload=payload)
+    students = fetch
+
+    return render_template("journal.html", students=students)
 
 @app.route('/adminStudent')
 @role_required("admin")
 @login_required
 async def adminStudent():
+
     payload = {
         "query": "SELECT * FROM student;",
         "args": None
@@ -242,7 +374,7 @@ async def adminStudent():
         execute = await send_request(server=app.config["Server"], type="execute", payload=payload)
 
         try:
-            await Json(file_path="trash/deleted_users.json",
+            await Json(file_path="json_files/deleted_users.json",
                        data=[student for student in students if student["student_id"] == int(id)][0]).append_json_file()
         except Exception as e:
             print(e)

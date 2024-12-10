@@ -1,0 +1,51 @@
+{% extends 'StudentBase.html' %}
+
+{% block title %}
+Главная страница
+{% endblock %}
+
+{% block body %}
+ <div class="h-100 p-5" style="background-color: #7895bd; border-radius: 0.3rem;"> <!-- Цвет фона: голубой -->
+        <h2>Школа №45</h2>
+        <p>
+Министерство образования Республики Беларусь
+Управление по образованию администрации Октябрьского района г.Минска
+Государственное учреждение образования</p>
+        <button class="btn btn-outline-light" type="button">Об учреждении</button>
+    </div>
+<div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
+    <div class="col d-flex align-items-start">
+        <div class="icon-square text-body-emphasis bg-body-secondary d-inline-flex align-items-center justify-content-center fs-4 flex-shrink-0 me-3">
+            <svg class="bi" width="1em" height="1em"><use xlink:href="#toggles2"></use></svg>
+        </div>
+        <div>
+            <h3 class="fs-2 text-body-emphasis mt-3">Журнал</h3>
+            <p>Раздел "Расписание" позволяет изменить расписание для выбранного класса</p>
+            <a href="/TeacherDiary" class="btn btn-primary">7"A"</a>
+             <a href="/journal" class="btn btn-primary">8"A"</a>
+        </div>
+    </div>
+    <div class="col d-flex align-items-start">
+        <div class="icon-square text-body-emphasis bg-body-secondary d-inline-flex align-items-center justify-content-center fs-4 flex-shrink-0 me-3">
+            <svg class="bi" width="1em" height="1em"><use xlink:href="#cpu-fill"></use></svg>
+        </div>
+        <div>
+            <h3 class="fs-2 text-body-emphasis">Мероприятия</h3>
+            <p>Абзац текста под заголовком, объясняющий заголовок. Мы добавим к нему ещё одно предложение и, возможно, будем продолжать, пока не закончатся слова.</p>
+            <a href="/events" class="btn btn-primary">Основная кнопка</a>
+        </div>
+    </div>
+
+    <div class="col d-flex align-items-start">
+        <div class="icon-square text-body-emphasis bg-body-secondary d-inline-flex align-items-center justify-content-center fs-4 flex-shrink-0 me-3">
+            <svg class="bi" width="1em" height="1em"><use xlink:href="#cpu-fill"></use></svg>
+        </div>
+        <div>
+            <h3 class="fs-2 text-body-emphasis">Отметки</h3>
+            <p>Абзац текста под заголовком, объясняющий заголовок. Мы добавим к нему ещё одно предложение и, возможно, будем продолжать, пока не закончатся слова.</p>
+            <a href="/grades" class="btn btn-primary">Основная кнопка</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -2,7 +2,10 @@ import asyncio
 import asyncpg
 import uvicorn
 from typing import Optional
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
+from fastapi.responses import FileResponse, RedirectResponse
+import os
+
 from contextlib import asynccontextmanager
 
 from config import DbConfig
@@ -35,8 +38,19 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 async def root():
-    return {"message": "When you die, cats will be well fed"}
+    return RedirectResponse(url="/TheCatsWillBeWellFed")
 
+@app.get("/TheCatsWillBeWellFed")
+async def well_fed_cats():
+    # Путь к GIF-файлу
+    gif_path = "wellfedcats.gif"
+
+    # Проверка, существует ли файл
+    if not os.path.exists(gif_path):
+        return {"error": "GIF not found"}
+
+    # Возвращаем файл как ответ
+    return FileResponse(gif_path, media_type="image/gif")
 
 @app.post("/execute")
 async def execute(raw_query: QueryModel):
@@ -63,7 +77,7 @@ async def main():
 
     config = uvicorn.Config(
         app,  # Передаем наше FastAPI приложение
-        host="127.0.0.1",  # Слушаем на всех доступных интерфейсах
+        host="0.0.0.0",  # Слушаем на всех доступных интерфейсах
         port=8432,
         reload=True  # Перезагружать при изменениях
     )

@@ -1,0 +1,56 @@
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Выставление оценок</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Выставление оценок</h1>
+    <form method="POST">
+        <table>
+            <thead>
+                <tr>
+                    <th>Студент</th>
+                    <th>Оценка</th>
+                    <th>Замечание</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td>{{ student.username }}</td>
+                    <td><input type="text" name="grades" placeholder="Оценка"></td>
+                    <td><input type="text" name="remarks" placeholder="Замечание"></td>
+                  <td><input type="hidden" name="student_ids" value="{{ student.id }}"></td>
+                  <td><input type="hidden" name="student_username" value="{{ student.username }}"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit">Сохранить оценки</button>
+    </form>
+</body>
+</html>
